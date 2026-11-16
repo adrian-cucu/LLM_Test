@@ -1,0 +1,8 @@
+# Copy to sonar-project.properties and set a unique key for each candidate run.
+sonar.projectKey=c-refactoring-study-example
+sonar.projectName=C Refactoring Study
+sonar.sources=.
+sonar.sourceEncoding=UTF-8
+sonar.cfamily.compile-commands=build/compile_commands.json
+# Configure your installed CFamily analyzer/plugin and server outside this template.
+# Do not commit authentication tokens.

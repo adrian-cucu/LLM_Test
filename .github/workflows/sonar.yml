@@ -1,0 +1,99 @@
+name: SonarQube - LLM Comparison
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - model: original
+            directory: dataset
+            project_key: adrian-cucu_LLM_Test_original
+
+          - model: chatgpt
+            directory: results/chatgpt
+            project_key: adrian-cucu_LLM_Test_chatgpt
+
+          - model: gemini
+            directory: results/gemini
+            project_key: adrian-cucu_LLM_Test_gemini
+
+          - model: claude
+            directory: results/claude
+            project_key: adrian-cucu_LLM_Test_claude
+
+          - model: grok
+            directory: results/grok
+            project_key: adrian-cucu_LLM_Test_grok
+
+          - model: copilot
+            directory: results/copilot
+            project_key: adrian-cucu_LLM_Test_copilot
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify source directory
+        id: verify
+        shell: bash
+        run: |
+          DIRECTORY="${{ matrix.directory }}"
+
+          if [ ! -d "$DIRECTORY" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Directory not found: $DIRECTORY. Skipping."
+            exit 0
+          fi
+
+          SOURCE_FILES=$(find "$DIRECTORY" -type f \( \
+            -iname '*.java' -o \
+            -iname '*.py' -o \
+            -iname '*.js' -o \
+            -iname '*.jsx' -o \
+            -iname '*.mjs' -o \
+            -iname '*.c' -o \
+            -iname '*.h' -o \
+            -iname '*.cpp' -o \
+            -iname '*.cc' -o \
+            -iname '*.cxx' -o \
+            -iname '*.hpp' -o \
+            -iname '*.hh' -o \
+            -iname '*.hxx' \
+          \))
+
+          FILE_COUNT=$(printf '%s\n' "$SOURCE_FILES" | grep -c . || true)
+
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No supported source files found in $DIRECTORY. Skipping."
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "Found $FILE_COUNT source files in $DIRECTORY:"
+          printf '%s\n' "$SOURCE_FILES"
+
+      - name: SonarQube Scan
+        if: steps.verify.outputs.skip != 'true'
+        uses: SonarSource/sonarqube-scan-action@v8.5.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=${{ matrix.project_key }}
+            -Dsonar.organization=adrian-cucu
+            -Dsonar.sources=${{ matrix.directory }}
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.exclusions=**/.git/**,**/node_modules/**,**/venv/**,**/.venv/**,**/build/**,**/dist/**,**/target/**,**/__pycache__/**,**/*.min.js,**/vendor/**

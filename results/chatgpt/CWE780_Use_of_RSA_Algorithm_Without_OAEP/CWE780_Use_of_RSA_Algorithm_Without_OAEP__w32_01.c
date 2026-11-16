@@ -1,0 +1,145 @@
+/* TEMPLATE GENERATED TESTCASE FILE
+Filename: CWE780_Use_of_RSA_Algorithm_Without_OAEP__w32_01.c
+Label Definition File: CWE780_Use_of_RSA_Algorithm_Without_OAEP__w32.label.xml
+Template File: point-flaw-01.tmpl.c
+*/
+/*
+ * @description
+ * CWE: 780 Use of RSA Algorithm Without OAEP
+ * Sinks:
+ *    GoodSink: Use RSA with OAEP
+ *    BadSink : Use RSA without OAEP
+ * Flow Variant: 01 Baseline
+ *
+ * */
+
+#include "std_testcase.h"
+
+#include <windows.h>
+#include <wincrypt.h>
+
+/* Link with the Advapi32.lib file for Crypt* functions */
+#pragma comment (lib, "Advapi32")
+#define HASH_INPUT "ABCDEFG123456" /* INCIDENTAL: Hardcoded crypto */
+#define PAYLOAD "String to be encrypted"
+
+#if !defined(OMITBAD) || !defined(OMITGOOD)
+
+static void encryptAndPrint(DWORD paddingFlags)
+{
+    {
+        BYTE payload[200];
+        DWORD payloadLen = strlen(PAYLOAD);
+        HCRYPTPROV hCryptProv = (HCRYPTPROV)NULL;
+        HCRYPTHASH hHash = (HCRYPTHASH)NULL;
+        HCRYPTKEY hKey = (HCRYPTKEY)NULL;
+        int failed = 1;
+        do
+        {
+            /* Copy plaintext into payload buffer */
+            memcpy(payload, PAYLOAD, payloadLen);
+            /* Try to get a context with and without a new key set */
+            if(!CryptAcquireContext(&hCryptProv, NULL, MS_ENHANCED_PROV, PROV_RSA_FULL, 0))
+            {
+                if(!CryptAcquireContext(&hCryptProv, NULL, MS_ENHANCED_PROV, PROV_RSA_FULL, CRYPT_NEWKEYSET))
+                {
+                    printLine("Error in acquiring cryptographic context");
+                    break;
+                }
+            }
+            /* Create Hash handle */
+            if(!CryptCreateHash(hCryptProv, CALG_SHA_256, 0, 0, &hHash))
+            {
+                printLine("Error in creating hash");
+                break;
+            }
+            /* Hash the data */
+            if(!CryptHashData(hHash, (BYTE *) HASH_INPUT, strlen(HASH_INPUT)*sizeof(char), 0))
+            {
+                printLine("Error in hashing HASH_INPUT");
+                break;
+            }
+            /* Derive an RSA key from the hash */
+            if(!CryptDeriveKey(hCryptProv, CALG_RSA_SIGN, hHash, 0, &hKey))
+            {
+                printLine("Error in CryptDeriveKey");
+                break;
+            }
+            if(!CryptEncrypt(hKey, (HCRYPTHASH)NULL, 1, paddingFlags, (BYTE *)payload, &payloadLen, sizeof(payload)))
+            {
+                printLine("Error in CryptEncryptData");
+                break;
+            }
+            failed = 0;
+        }
+        while (0);
+        if (hKey)
+        {
+            CryptDestroyKey(hKey);
+        }
+        if (hHash)
+        {
+            CryptDestroyHash(hHash);
+        }
+        if (hCryptProv)
+        {
+            CryptReleaseContext(hCryptProv, 0);
+        }
+        /* Release every acquired handle before preserving the original failure exit. */
+        if (failed)
+        {
+            exit(1);
+        }
+        /* use encrypted block */
+        printBytesLine((BYTE *) payload, payloadLen);
+    }
+}
+
+#endif
+
+#ifndef OMITBAD
+void CWE780_Use_of_RSA_Algorithm_Without_OAEP__w32_01_bad()
+{
+    encryptAndPrint(0);
+}
+#endif /* OMITBAD */
+
+#ifndef OMITGOOD
+
+static void good1()
+{
+    encryptAndPrint(CRYPT_OAEP);
+}
+
+void CWE780_Use_of_RSA_Algorithm_Without_OAEP__w32_01_good()
+{
+    good1();
+}
+
+#endif /* OMITGOOD */
+
+/* Below is the main(). It is only used when building this testcase on
+   its own for testing or for building a binary to use in testing binary
+   analysis tools. It is not used when compiling all the testcases as one
+   application, which is how source code analysis tools are tested. */
+
+#ifdef INCLUDEMAIN
+
+int main(int argc, char * argv[])
+{
+    /* seed randomness */
+    srand( (unsigned)time(NULL) );
+#ifndef OMITGOOD
+    printLine("Calling good()...");
+    CWE780_Use_of_RSA_Algorithm_Without_OAEP__w32_01_good();
+    printLine("Finished good()");
+#endif /* OMITGOOD */
+#ifndef OMITBAD
+    printLine("Calling bad()...");
+    CWE780_Use_of_RSA_Algorithm_Without_OAEP__w32_01_bad();
+    printLine("Finished bad()");
+#endif /* OMITBAD */
+    return 0;
+}
+
+#endif

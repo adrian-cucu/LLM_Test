@@ -1,0 +1,19 @@
+{
+  "run_id": "replace-with-unique-id",
+  "created_utc": "YYYY-MM-DDTHH:MM:SSZ",
+  "dataset_revision": "git commit hash",
+  "prompt_revision": "v1",
+  "model": {
+    "provider": "",
+    "name_and_version": "",
+    "interface": "",
+    "settings": ""
+  },
+  "operator_notes": "Record truncation, retries, or deviations here.",
+  "toolchain": {
+    "compiler": "",
+    "cppcheck": "",
+    "clang_tidy": "",
+    "sonarqube_server_and_plugin": ""
+  }
+}
